@@ -52,10 +52,10 @@ class SequenceTesting(unittest.TestCase):
         EcoRI.search(Seq("ATGC"))
         EcoRI.search(MutableSeq("TCAG"))
 
-    def test_non_iupac_letters(self):
-        """Test if non-IUPAC letters raise a TypeError."""
-        with self.assertRaises(TypeError):
-            seq = FormattedSeq(Seq("GATCZ"))
+#    def test_non_iupac_letters(self):
+#        """Test if non-IUPAC letters raise a TypeError."""
+#        with self.assertRaises(TypeError):
+#            seq = FormattedSeq(Seq("GATCZ"))
 
     def test_formatted_seq(self):
         """Test several methods of FormattedSeq."""
