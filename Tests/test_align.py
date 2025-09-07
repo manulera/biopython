@@ -940,8 +940,6 @@ class TestFromPairwiseAlignments(unittest.TestCase):
         self.assertEqual(len(msa), 3)
 
         # Validate that from_pairwise_alignments gives the right msa
-        print("Printing MSA")
-        print(msa)
         self.assertEqual(str(msa[0]), "ACG-T")
         self.assertEqual(str(msa[1]), "ACGGT")
         self.assertEqual(str(msa[2]), "A---T")
@@ -1005,8 +1003,11 @@ class TestFromPairwiseAlignments(unittest.TestCase):
 
         # Use the method being tested
         msa = Alignment.from_pairwise_alignments([pwa1, pwa2])
-        print("Printing MSA")
-        print(msa)
+        
+        # Validate that from_pairwise_alignments gives the right msa
+        self.assertEqual(str(msa[0]), "ACG-T")
+        self.assertEqual(str(msa[1]), "ACGGT")
+        self.assertEqual(str(msa[2]), "A---T")
 
         # Check that id and description are retained
         self.assertEqual(msa.sequences[0].id, "reference")
