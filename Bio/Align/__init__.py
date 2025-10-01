@@ -1111,7 +1111,7 @@ class Alignment:
         return sequences, coordinates
 
     @classmethod
-    def from_pairwise_alignments(
+    def from_alignments_with_same_reference(
         cls, pwas: list["Alignment"] | tuple["Alignment"]
     ) -> "Alignment":
         """Create an Alignment from a list of pairwise alignments.
@@ -1155,7 +1155,7 @@ class Alignment:
             Seq2:      A--T
 
             Now, we can combine these pairwise alignments into a multiple sequence alignment:
-            >>> msa = Alignment.from_pairwise_alignments([pwa1, pwa2])
+            >>> msa = Alignment.from_alignments_with_same_reference([pwa1, pwa2])
             >>> print(msa)
             reference         0 ACG-T 4
             seq_1             0 ACGGT 5
@@ -1174,7 +1174,7 @@ class Alignment:
             >>> pwa2 = next(aligner.align(reference_seqr, seq2))
 
             The msa retains the metadata from the original SeqRecord objects:
-            >>> msa = Alignment.from_pairwise_alignments([pwa1, pwa2])
+            >>> msa = Alignment.from_alignments_with_same_reference([pwa1, pwa2])
             >>> print(msa.format("fasta"))
             >reference desc 1
             ACG-T
@@ -1227,6 +1227,7 @@ class Alignment:
             i += 1
 
         # Concatenate all indices vertically
+        print([ind.shape for ind in all_indices])
         all_indices = np.concatenate(
             [all_indices[0], *[ind[1:] for ind in all_indices[1:]]], axis=0
         )
