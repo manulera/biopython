@@ -1114,7 +1114,7 @@ class Alignment:
     def from_alignments_with_same_reference(
         cls, pwas: list["Alignment"] | tuple["Alignment"]
     ) -> "Alignment":
-        """Create an Alignment from a list of alignments.
+        """Create an Alignment from a list of alignments in which the first sequence is the same (reference sequence).
 
         This method combines multiple alignments into a single multiple sequence alignment.
         All alignments must share the same reference sequence (ignoring gaps).
@@ -1264,8 +1264,12 @@ class Alignment:
         # Convert indices to coordinates
         lines = []
         for i in range(all_indices.shape[0]):
-            lines.append("".join("N" if v != -1 else "-" for v in all_indices[i, :]))
-        coordinates = Alignment.infer_coordinates(lines)
+            lines.append(
+                bytes(
+                    "".join("N" if v != -1 else "-" for v in all_indices[i, :]), "UTF8"
+                )
+            )
+        _, coordinates = Alignment.parse_printed_alignment(lines)
         sequences = pwas[0].sequences + sum([pwa.sequences[1:] for pwa in pwas[1:]], [])
         return cls(sequences, coordinates)
 
