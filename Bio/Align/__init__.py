@@ -1192,6 +1192,24 @@ class Alignment:
         sequences = [reference_seq] + other_sequences
 
         # Build per-query pairwise coordinate arrays of reference vs query.
+        # so that paired_coordinates[i].transpose() is identical to the
+        # coordinates of each pairwise alignment
+        # Each element e_i has a shape Mx2, where the rows are the coordinates
+        # and the columns are the reference and query positions.
+        # For example, for a first pwa
+        # ACGT
+        # AC-T
+        # The first element of paired_coordinates would be:
+        # [0 0]
+        # [2 2]
+        # [3 2]
+        # [4 3]
+        # We can refer to these positions as:
+        # [a0r0, a0q0]
+        # [a0r1, a0q1]
+        # ...
+        # [a0rN, a0qN]
+        # "a" for alignment, "r" for reference, "q" for query
         paired_coordinates = []
         for alignment in alignments:
             coords = alignment.coordinates
@@ -1211,43 +1229,61 @@ class Alignment:
         coordinates = [iter(c) for c in paired_coordinates]
 
         msa_coordinates = []
-        # Initialize positions and next_positions arrays
+        # For each pairwise alignment ai, get the initial positions
+        # [a0r0, a0q0], [a1r0, a1q0], ..., [aNr0, aNq0]
         positions = np.array([next(c) for c in coordinates])
+        # Get the second positions
+        # [a0r1, a0q1], [a1r1, a1q1], ..., [aNr1, aNq1]
         next_positions = np.array([next(c) for c in coordinates])
-        # Add initial positions
+        # The first position of the MSA must be:
+        # [r0, a0q0, a1q0, ..., aNq0]
         msa_coordinates.append([reference_position] + list(positions[:, 1]))
 
         while True:
-            # Iterate until all sequences are fully processed
+            print(msa_coordinates)
+            print(positions)
+            print(next_positions)
+            print("--------------------------------")
+            # Iterate until all pairwise alignments are fully processed
             if (next_positions == sys.maxsize).all():
                 break
-            # For each sequence, determine the step size to the next reference position
-            target_steps = next_positions[:, 0] - reference_position
-            # Find the minimum positive step size
-            index = np.argmin(target_steps)
-            target_step = target_steps[index]
-            # For each sequence, determine the step size to the next non-reference position
+            # For each pairwise alignement, determine the step size to the previous
+            # common reference position
+            # [a0ri, a1ri, ..., aNri] - reference_position
+            reference_steps = next_positions[:, 0] - reference_position
+            # Find the minimum step size between previous and new reference position
+            # among all pairwise alignements
+            index = np.argmin(reference_steps)
+            reference_step = reference_steps[index]
+            # For each pairwise alignement, determine the step size to the next query position
+            # [a0qi, a1qi, ..., aNqi] - [a0q_{i-1}, a1q_{i-1}, ..., aNq_{i-1}]
             query_steps = next_positions[:, 1] - positions[:, 1]
+            # Then pick the step size that corresponds to the pairwise alignement with
+            # the minimum step size between previous and new REFERENCE position
             query_step = query_steps[index]
-            # Move the reference position forward to the next
-            reference_position += target_step
-            # Update positions and next_positions for the sequence with the minimum step
+            # Move the reference position forward to the closest reference
+            reference_position += reference_step
+            # Update positions and next_positions for the pairwise alignement with the minimum step,
+            # if the query finishes, set next_positions to sys.maxsize to indicate that the pairwise alignement
+            # at this index is fully processed
             positions[index, :] = next_positions[index, :]
             next_positions[index, :] = next(coordinates[index], sys.maxsize)
-            # If the reference and query both didn't advance, don't change positions
-            if target_step == 0:
+            # If the reference and query are both zero
+            if reference_step == 0:
                 if query_step == 0:
+                    # Don't append to msa_coordinates
                     continue
             else:
-                # The reference did advance
+                # The smallest step of all references with respect to the common reference position
+                # is not zero.
                 for i, query_step in enumerate(query_steps):
                     if i != index:  # Skip the sequence that just advanced
                         if query_step > 0:
                             # The query also advanced, so move both reference and query positions
-                            positions[i, :] += target_step
+                            positions[i, :] += reference_step
                         else:
-                            # The query did not advance, so move only the reference position
-                            positions[i, 0] += target_step
+                            # The query did not advance (query_step == 0), so move only the reference position
+                            positions[i, 0] += reference_step
             # Append the current positions to msa_coordinates
             msa_coordinates.append([reference_position] + list(positions[:, 1]))
 
